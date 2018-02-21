@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style type="text/css">
+	select {font-weight: bold; font-size: 14px;}
+	p {font-size: 16px;}
+	a {font-size: 14px;}
+
+  span.highlight {
+    background-color: yellow;
+    font-weight: bold;
+  }
+
+  .container {
+    overflow: hidden;
+    background-color: #018571;
+    font-family: Arial;
+  }
+
+  .dropdown {
+      float: left;
+      overflow: hidden;
+      width:16%;
+  }
+
+  .dropdown .dropbtn {
+      font-size: 16px;    
+      border: none;
+      outline: none;
+      color: white;
+      padding: 10px 16px;
+      background-color: inherit;
+      width:100%;
+  }
+
+  .dropdown:hover .dropbtn {
+      background-color: #dfc27d;
+  }
+
+  .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #f9f9f9;
+      width:16%;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      z-index: 1;
+      overflow:auto;
+  }
+
+  .dropdown-content a {
+      float: none;
+      color: grey;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+      text-align: center;
+  }
+
+  .dropdown-content a:hover {
+      background-color: #ddd;
+  }
+
+  .dropdown:hover .dropdown-content {
+      display: block;
+  } 
+
+  #map-canvas {position: absolute; bottom: 15px; left: 10px; right: 10px; z-index: -1}
+  #previousYear {display:inline-block; text-align:center; float: left; font-size: 16px;}
+  #nextYear {display:inline-block; text-align:center; float: right; font-size: 16px;}
+  #sheetIndex {text-align:center; }
+  #Legend {position: absolute; bottom:20px; left: 18px; z-index: 1}
+
+  </style>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+  <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCpjB7M9YigE1xiAWRNxv-ngBokdC2IeW0&language=en">
+  </script>
+
+  <script type="text/javascript">
+    var  info = new google.maps.InfoWindow();
+
+    function handleClientLoad() {
+      gapi.load('client:auth2', initClient);
+      // console.log("1");
+    }
+
+    function initClient() {
+      gapi.client.init({
+        apiKey: 'AIzaSyCpjB7M9YigE1xiAWRNxv-ngBokdC2IeW0',
+        clientId: '458970801723-gt0pu8e0jgirm3srmjun0hr9b73m55je.apps.googleusercontent.com',
+        scope: "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive",
+        discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
+      }).then(function () {
+        // Listen for sign-in state changes.
+        gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
+        // console.log("2");
+        // Handle the initial sign-in state.
+        updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+        // console.log('7');
+      });
+    }
+
+    function updateSigninStatus(isSignedIn) {
+      if (isSignedIn) {
+        console.log("Signed In");
+      } else {
+        // console.log("Signed out");
+      }
+    }
+
+    function init() {
+      google.load( "visualization", "1", { "callback": init_map } );
+      // console.log("5");
+    }
+
+    function init_map() {
+      var  q;
+      q = new google.visualization.Query("https://docs.google.com/spreadsheets/d/1hDuZnZzxUPvh_ARnqZPksJ0g_7fBsdRiKTPGt-QvbZc/edit?usp=sharing");
+      q.setQuery( "SELECT A,B,C,D,F,G ORDER BY A" );
+      q.send( viz_pop );
+      // console.log("6");
+    }
+
+    function viz_pop( data ) {
+      var  sheetID;
+      var  city;      // City name
+      var  i;       // Loop counter
+      var  lat;       // Latitude
+      var  lon;       // Longitude
+      var  contentString; // Paragraph content
+      var  dataArray = [];  // Google sheet data Array
+      var  map;       // Map
+      var  n;       // Number of data rows
+      var  opt = {      // Map options
+             center: new google.maps.LatLng( 20, -10 ),
+             zoom: 3
+           };
+      var  siz;       // Marker size
+      var  tbl;       // Data table returned
+
+      map = new google.maps.Map( document.getElementById( "map-canvas" ), opt );
+
+      tbl = data.getDataTable();  // Get data table
+      n = tbl.getNumberOfRows();  // Get rows (cities) in table
+
+      for( i = 0; i < n; i++ ) { 
+        var subArray = [];  
+        subArray.push(
+          tbl.getValue( i, 0 ), tbl.getValue( i, 1 ), tbl.getValue( i, 2 ), tbl.getValue( i, 3 ), tbl.getValue( i, 4), tbl.getValue( i, 5)
+          );  // Add the data in the same row to a sub-array
+        dataArray.push(subArray); // Add all sub-array to the data array
+
+        lat = dataArray[i][1]; // Get lat, lon, city name
+        lon = dataArray[i][2];
+        city = dataArray[i][3];
+        status = dataArray[i][5];
+
+        function changeMarkerColor(color){
+          marker = new google.maps.Marker({
+          position: new google.maps.LatLng(lat, lon),
+          map: map,
+          title: city,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            fillColor: color,
+            scale: 7,
+            fillOpacity: 0.7,
+            strokeColor: "grey",
+            strokeWeight: 1
+          },
+          });
+        }
+
+        if (status == "remove"){
+        	changeMarkerColor("#8c510a");
+        }else if (status == "uncertain"){
+        	changeMarkerColor("#d8b365");
+      	}else if (status == "archive"){
+        	changeMarkerColor("#c7eae5");
+        }else if (status == "move"){
+        	changeMarkerColor("#5ab4ac");
+        }else if (status == "accept"){
+        	changeMarkerColor("#01665e");
+        }else {
+          changeMarkerColor("#f5f5f5");
+        }
+
+        google.maps.event.addListener(marker,'click', (function(marker, i){
+          return function(){
+          start = dataArray[i][4].indexOf(dataArray[i][3]);
+          end = start+ dataArray[i][3].length;
+          contentString = dataArray[i][4].substring(0, start) + "<b>" + dataArray[i][3] +"</b>"+ dataArray[i][4].substring(end,) + 
+          `<br>
+          <select id='status'>
+            <option value="default" selected="selected" disabled>` +  dataArray[i][5]+  `</option>
+            <option value="accept">accept</option>
+            <option value="move">move</option>
+            <option value="uncertain">uncertain</option>
+            <option value="archive">archive</option>
+            <option value="remove">remove</option>
+          </select> <br>
+          Comments: <input type="text" id= "commentsOnPoint" name="comments"> &nbsp;
+          <button onclick="submitStatus({0})">Submit</button>
+            `.format(dataArray[i][0]);
+          info.setContent(contentString);
+          info.open(map,marker);
+          console.log(i+1);
+        }})(marker, i));
+      }
+    }
+  
+   function submitStatus(i){
+    console.log("{0}".format(i+1),document.getElementById('status').value);
+    console.log(document.getElementById('sheetIndex').innerText);
+    console.log(typeof document.getElementById('sheetIndex').innerText);
+    // console.log($('.sheetIndex')[0].innerHTML());
+    $.get("https://script.google.com/macros/s/AKfycbyFd7JOC5uQsJZ3FWTcedmQTMJUgRvH37jXFFEzYUSmSa3JsAI/exec", {
+        "row": "{0}".format(i+1),
+        "status": document.getElementById('status').value,
+        "sheetIdx": document.getElementById('sheetIndex').innerText,
+        "comments": document.getElementById('commentsOnPoint').value,
+      });
+    alert("Your selection:\n" + document.getElementById('status').value + "\nhas been updated to ID: "+ i );
+    info.close();
+    window.location.reload();
+    }
+
+    String.prototype.format = function(){
+     var args = arguments
+     return this.replace(/\{\{|\}\}|\{(\d+)\}/g, function (m, i) {
+      if (m == "{{") return "{"
+      if (m == "}}") return "}"
+      return args[i]
+      })
+    }
+    google.maps.event.addDomListener( window, "load", init );
+
+  </script>
+  <script async defer src="https://apis.google.com/js/api.js" onload="this.onload=function(){};handleClientLoad()"
+    onreadystatechange="if (this.readyState === 'complete') this.onload()"></script>
+</head>
+
+<body>
+  <div class="container">
+    <div class="dropdown">
+      <button class="dropbtn">Potato</button>
+      <div class="dropdown-content">
+        <a href="1843_Potato.html">1843</a>
+        <a href="1844_Potato.html">1844</a>
+        <a href="1845_Potato.html">1845</a>
+        <a href="1846_Potato.html">1846</a>
+        <a href="1847_Potato.html">1847</a>
+        <a href="1848_Potato.html">1848</a>
+      </div>
+    </div>
+    <div class="dropdown">
+      <button class="dropbtn">Disease</button>
+      <div class="dropdown-content">
+        <a href="1843_Disease.html">1843</a>
+        <a href="1844_Disease.html">1844</a>
+        <a href="index.html">1845</a>
+        <a href="1846_Disease.html">1846</a>
+        <a href="1847_Disease.html">1847</a>
+        <a href="1848_Disease.html">1848</a>
+      </div>
+    </div> 
+    <div class="dropdown">
+      <button class="dropbtn">Transportation</button>
+      <div class="dropdown-content">
+        <a href="1843_Transportation.html">1843</a>
+        <a href="1844_Transportation.html">1844</a>
+        <a href="1845_Transportation.html">1845</a>
+        <a href="1846_Transportation.html">1846</a>
+        <a href="1847_Transportation.html">1847</a>
+        <a href="1848_Transportation.html">1848</a>
+      </div>
+    </div>
+    <div class="dropdown">
+      <button class="dropbtn">Treatment</button>
+      <div class="dropdown-content">
+        <a href="1843_Treatment.html">1843</a>
+        <a href="1844_Treatment.html">1844</a>
+        <a href="1845_Treatment.html">1845</a>
+        <a href="1846_Treatment.html">1846</a>
+        <a href="1847_Treatment.html">1847</a>
+        <a href="1848_Treatment.html">1848</a>
+      </div>
+    </div>
+    <div class="dropdown">
+      <button class="dropbtn">Weather Symptom</button>
+      <div class="dropdown-content">
+        <a href="1843_WeatherSymptom.html">1843</a>
+        <a href="1844_WeatherSymptom.html">1844</a>
+        <a href="1845_WeatherSymptom.html">1845</a>
+        <a href="1846_WeatherSymptom.html">1846</a>
+        <a href="1847_WeatherSymptom.html">1847</a>
+        <a href="1848_WeatherSymptom.html">1848</a>
+      </div>
+    </div>
+    <div class="dropdown">
+      <button class="dropbtn">Storage</button>
+      <div class="dropdown-content">
+        <a href="1843_Storage.html">1843</a>
+        <a href="1844_Storage.html">1844</a>
+        <a href="1845_Storage.html">1845</a>
+        <a href="1846_Storage.html">1846</a>
+        <a href="1847_Storage.html">1847</a>
+        <a href="1848_Storage.html">1848</a>
+      </div>
+    </div>
+  </div>
+
+<!--   <div id="Potato" class="tabcontent">
+    <h3>Potato</h3>
+    <p> termsOFinterest = ["Potato", "Potatoes", "Potatoe", "Seeds", "seed set", "Irish potato", "Chenango", "Lady fingers", "Solanum tuberosum", "blue-nose"]</p>
+    <p>termsToAvoid = ["sweet potato", "sweet potatoes"]</p>
+  </div>
+
+  <div id="Disease" class="tabcontent">
+    <h3>Disease</h3>
+    <p>termsOFinterest = ['blight', 'black spots', 'malady', 'potato cholera', 'murrain', 'potato plague', 'evil', 'potato evil', 'potato disorder', 'potato rotted', 'mildew', 'rusted decay', 'mould', 'rot', 'rotted', 'disease', 'decay', 'sudden decay','rots', 'Rotting', 'Rotten', 'Fungus', 'Black spot', 'loss']</p>
+    <p>termsToAvoid = ['dry rot']</p> 
+  </div>
+
+  <div id="Transportation" class="tabcontent">
+    <h3>Transportation</h3>
+    <p>termsOFinterest = ['shipping','ship','cargo','port','ports','river','imported','import','waterways','canal']</p>
+  </div>
+ -->
+  <a href="1847_Potato.html" class="previous" id= "previousYear">&laquo; Previous Year</a>
+  <!-- <a href="1848_Potato.html" class="next" id= "nextYear">Next Year&raquo;</a> -->
+  <h3 id= "sheetIndex" ><b>1848 Potato</h3>
+  <p> termsOFinterest = ["Potato", "Potatoes", "Potatoe", "Seeds", "seed set", "Irish potato", "Chenango", "Lady fingers", "Solanum tuberosum", "blue-nose"]</p>
+  <p>termsToAvoid = ["sweet potato", "sweet potatoes"]</p>
+  
+  <div id="map-canvas" style="border: 1px solid black; height: 72%">
+  </div>
+    <img src="legend.png" id="Legend" width="110" height="135"></div>
+</body>
+</html>

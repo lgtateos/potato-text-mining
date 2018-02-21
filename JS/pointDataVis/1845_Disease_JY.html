@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style type="text/css">
+  select {font-weight: bold; font-size: 14px;}
+  p {font-size: 16px;}
+  a {font-size: 14px;}
+
+  span.highlight {
+    background-color: yellow;
+    font-weight: bold;
+  }
+
+  .container {
+    overflow: hidden;
+    background-color: #018571;
+    font-family: Arial;
+  }
+
+  .dropdown {
+      float: left;
+      overflow: hidden;
+      width: 33.3%;
+  }
+
+  .dropdown .dropbtn {
+      font-size: 16px;    
+      border: none;
+      outline: none;
+      color: white;
+      padding: 10px 16px;
+      background-color: inherit;
+      width:100%;
+  }
+
+  .dropdown:hover .dropbtn {
+      background-color: #dfc27d;
+  }
+
+  .dropdown-content {
+      display: none;
+      position: absolute;
+      background-color: #f9f9f9;
+      width:33%;
+      box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+      z-index: 1;
+      overflow:auto;
+  }
+
+  .dropdown-content a {
+      float: none;
+      color: grey;
+      padding: 12px 16px;
+      text-decoration: none;
+      display: block;
+      text-align: center;
+  }
+
+  .dropdown-content a:hover {
+      background-color: #ddd;
+  }
+
+  .dropdown:hover .dropdown-content {
+      display: block;
+  } 
+
+  #map-canvas {position: absolute; bottom: 15px; left: 10px; right: 10px; z-index: -1}
+  #previousYear {display:inline-block; text-align:center; float: left; font-size: 16px;}
+  #nextYear {display:inline-block; text-align:center; float: right; font-size: 16px;}
+  #sheetIndex {text-align:center; }
+  #Legend {position: absolute; bottom:20px; left: 18px; z-index: 1}
+
+  </style>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+  <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+  <script type="text/javascript" src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCpjB7M9YigE1xiAWRNxv-ngBokdC2IeW0&language=en"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/OverlappingMarkerSpiderfier/1.0.3/oms.min.js"></script>
+
+  <script type="text/javascript">
+    var  info = new google.maps.InfoWindow();
+
+    function handleClientLoad() {
+      gapi.load('client:auth2', initClient);
+    }
+
+    function initClient() {
+      gapi.client.init({
+        apiKey: 'AIzaSyCpjB7M9YigE1xiAWRNxv-ngBokdC2IeW0',
+        clientId: '458970801723-gt0pu8e0jgirm3srmjun0hr9b73m55je.apps.googleusercontent.com',
+        scope: "https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/drive",
+        discoveryDocs: ["https://sheets.googleapis.com/$discovery/rest?version=v4"],
+      }).then(function () {
+        // Listen for sign-in state changes.
+        gapi.auth2.getAuthInstance().isSignedIn.listen(updateSigninStatus);
+        // Handle the initial sign-in state.
+        updateSigninStatus(gapi.auth2.getAuthInstance().isSignedIn.get());
+      });
+    }
+
+    function updateSigninStatus(isSignedIn) {
+      if (isSignedIn) {
+        console.log("Signed In");
+      } else {
+      }
+    }
+
+    function init() {
+      google.load( "visualization", "1", { "callback": init_map } );
+    }
+
+    function init_map() {
+      var  q;
+      q = new google.visualization.Query("https://docs.google.com/spreadsheets/d/1MQGyx-UqN4h8pe_Cmi96YLTp-Q35FyjxNN2ygTfus3s/edit?usp=sharing");
+      q.setQuery( "SELECT A,B,C,D,F,G,H ORDER BY A" );
+      q.send( viz_pop );
+    }
+
+    function viz_pop( data ) {
+      var  sheetID;
+      var  city;      // City name
+      var  i;       // Loop counter
+      var  lat;       // Latitude
+      var  lon;       // Longitude
+      var  contentString; // Paragraph content
+      var  dataArray = [];  // Google sheet data Array
+      var  map;       // Map
+      var  n;       // Number of data rows
+      var  opt = {      // Map options
+             center: new google.maps.LatLng( 20, -10 ),
+             zoom: 3
+           };
+      var  siz;       // Marker size
+      var  tbl;       // Data table returned
+
+      map = new google.maps.Map( document.getElementById( "map-canvas" ), opt );
+
+      var oms = new OverlappingMarkerSpiderfier(map, { 
+        markersWontMove: true,   // not to move any markers, allowing optimizations
+        markersWontHide: true,   // not to change visibility of any markers, allowing optimizations
+        basicFormatEvents: true  // allow the library to skip calculating advanced formatting information
+      });
+
+      tbl = data.getDataTable();  // Get data table
+      n = tbl.getNumberOfRows();  // Get rows (cities) in table
+
+      var color;
+
+      for( i = 0; i < n; i++ ) { 
+        var subArray = [];  
+        subArray.push(
+          tbl.getValue( i, 0 ), tbl.getValue( i, 1 ), tbl.getValue( i, 2 ), tbl.getValue( i, 3 ), tbl.getValue( i, 4), tbl.getValue( i, 5), tbl.getValue( i, 6)
+          );  // Add the data in the same row to a sub-array
+        dataArray.push(subArray); // Add all sub-array to the data array
+      }
+
+      for( i = 0; i < 900; i ++){
+
+        sheetID = dataArray[i][0];
+        lat = dataArray[i][1]; // Get lat, lon, city name
+        lon = dataArray[i][2];
+        city = dataArray[i][3];
+        status = dataArray[i][5];
+
+        function changeMarkerColor(color){
+          marker = new google.maps.Marker({
+          position: new google.maps.LatLng(lat, lon),
+          map: map,
+          title: city,
+          icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            fillColor: color,
+            scale: 7,
+            fillOpacity: 0.7,
+            strokeColor: "grey",
+            strokeWeight: 1
+          },
+          });
+        }
+
+        if (status == "remove"){
+          color = "#8c510a";
+        }else if (status == "uncertain"){
+          color = "#c7eae5";
+        }else if (status == "archive"){
+            color = "#d8b365";
+        }else if (status == "move"){
+            color = "#5ab4ac";
+        }else if (status == "accept"){
+            color = "#01665e";
+        }else{
+        	color = "white";
+        }
+        changeMarkerColor(color);
+
+        google.maps.event.addListener(marker,'spider_click', (function(marker, i){
+          // 'spider_click', not plain 'click'
+          return function(){
+          start = dataArray[i][4].indexOf(dataArray[i][3]);
+          end = start+ dataArray[i][3].length;
+          contentString =`<b>Point ID: ` + dataArray[i][0] +`</b><br>` + dataArray[i][4].substring(0, start) + "<b>" + dataArray[i][3] +"</b>"+ dataArray[i][4].substring(end,) + 
+          `<br>
+          <select id='status'>
+          <option value="default" selected="selected" disabled>` +  dataArray[i][5] +  `</option>
+          <option value="accept">accept</option>
+          <option value="move">move</option>
+          <option value="uncertain">uncertain</option>
+          <option value="default">default</option>
+          <option value="archive">archive</option>
+          <option value="remove">remove</option>
+          </select> <br>
+          Comments: <input type="text" id= "commentsOnPoint" placeholder="`+ dataArray[i][6] + `"> &nbsp;
+          <button onclick="submitStatus({0})">Submit</button>
+            `.format(dataArray[i][0]);
+          info.setContent(contentString);
+          info.open(map,marker);
+          console.log(i+1);
+          console.log(dataArray[i][6]);//added for test 0118
+        }})(marker, i));
+        oms.addMarker(marker); // adds the marker to the spiderfier _and_ the map
+      }
+      window.oms = oms; // ditto
+    }
+  
+   function submitStatus(i){
+    console.log("{0}".format(i),document.getElementById('status').value);
+    console.log(document.getElementById('commentsOnPoint').value);
+    $.get("https://script.google.com/macros/s/AKfycbxWs0vqeU3DnsOfyAJfT_gEYNO7mtoM233aQhm79P6AxL1Srg0C/exec", {
+        "row": "{0}".format(i+1),
+        "status": document.getElementById('status').value,
+        "sheetIdx": document.getElementById('sheetIndex').innerText,
+        "comments": document.getElementById('commentsOnPoint').value,
+      });
+    alert("Your selection:\n" + document.getElementById('status').value + "\nhas been updated to ID: "+ i );
+    info.close();
+    window.location.reload();
+    }
+
+    String.prototype.format = function(){
+     var args = arguments
+     return this.replace(/\{\{|\}\}|\{(\d+)\}/g, function (m, i) {
+      if (m == "{{") return "{"
+      if (m == "}}") return "}"
+      return args[i]
+      })
+    }
+    google.maps.event.addDomListener( window, "load", init );
+
+  </script>
+  <script async defer src="https://apis.google.com/js/api.js" onload="this.onload=function(){};handleClientLoad()"
+    onreadystatechange="if (this.readyState === 'complete') this.onload()"></script>
+</head>
+
+<body>
+  <div class="container">
+    <div class="dropdown">
+      <button class="dropbtn">Potato</button>
+      <div class="dropdown-content">
+        <a href="1843_Potato.html">1843</a>
+        <a href="1844_Potato.html">1844</a>
+        <a href="1845_Potato.html">1845</a>
+        <a href="1846_Potato.html">1846</a>
+        <a href="1847_Potato.html">1847</a>
+        <a href="1848_Potato.html">1848</a>
+      </div>
+    </div>
+    <div class="dropdown">
+      <button class="dropbtn">Disease</button>
+      <div class="dropdown-content">
+        <a href="1843_Disease.html">1843</a>
+        <a href="1844_Disease.html">1844</a>
+        <a href="index.html">1845</a>
+        <a href="1846_Disease.html">1846</a>
+        <a href="1847_Disease.html">1847</a>
+        <a href="1848_Disease.html">1848</a>
+      </div>
+    </div> 
+    <div class="dropdown">
+      <button class="dropbtn">1845 Disease - Separate Maps for</button>
+      <div class="dropdown-content">
+        <a href="1845_Disease_JR.html">Dr. Ristaino</a>
+        <a href="1845_Disease_LT.html">Dr. Tateosian</a>
+        <a href="1845_Disease_AS.html">Amanda</a>
+        <a href="1845_Disease_JY.html">July</a>
+      </div>
+    </div>
+  </div>
+
+  <h3 id= "sheetIndex" ><b>1845 Disease - July's part </h3>
+  <p>termsOFinterest = ['blight', 'black spots', 'malady', 'potato cholera', 'murrain', 'potato plague', 'evil', 'potato evil', 'potato disorder', 'potato rotted', 'mildew', 'rusted decay', 'mould', 'rot', 'rotted', 'disease', 'decay', 'sudden decay','rots', 'Rotting', 'Rotten', 'Fungus', 'Black spot', 'loss']</p>
+  <p>termsToAvoid = ['dry rot']</p> 
+
+  <div id="map-canvas" style="border: 1px solid black; height: 72%">
+  </div>
+    <img src="legend.png" id="Legend" width="110" height="135"></div>
+</body>
+</html>
