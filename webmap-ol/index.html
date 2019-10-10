@@ -1,0 +1,85 @@
+<!Doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no, width=device-width">
+    <!-- Update to the latest version OpenLayers v5.3.0-->
+    <link rel="stylesheet" href="https://openlayers.org/en/v5.3.0/css/ol.css" type="text/css">
+    <!-- Update the Layerswitcher Control to the latest version stored in the lacol directory-->
+    <link rel="stylesheet" href="../ol-layerswitcher/src/ol-layerswitcher.css" />
+    <link rel="stylesheet" href="mapStyle.css" type="text/css">
+    <!-- The Material & Icons Lite CSS and JavaScript files hosted in Google CDN -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+    <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+    <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    <!-- JQuery and DataTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.2.1/jquery.min.js" type="text/javascript" ></script>
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.10.19/css/jquery.dataTables.min.css">
+    <script src="https://cdn.datatables.net/1.10.19/js/jquery.dataTables.min.js" type="text/javascript"></script>
+    <!-- Activate DataTable File Exporting function -->
+    <script src="https://cdn.datatables.net/buttons/1.6.0/js/dataTables.buttons.min.js" type="text/javascript"></script>
+    <script src="https://cdn.datatables.net/buttons/1.6.0/js/buttons.flash.min.js" type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.1.3/jszip.min.js" type="text/javascript"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.53/vfs_fonts.js" type="text/javascript"></script>
+    <script src="https://cdn.datatables.net/buttons/1.6.0/js/buttons.html5.min.js" type="text/javascript"></script>
+    <!-- DataTale Multiple tabs function -->
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" type="text/javascript"></script>
+    <script src="https://cdn.datatables.net/1.10.20/js/dataTables.bootstrap.min.js" type="text/javascript"></script>
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.20/css/dataTables.bootstrap.min.css">
+    <!-- CellEdit Datatable plug-in -->
+    <!-- <link rel="stylesheet" type="text/css" href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css" /> -->
+
+    <title>Potato Blight Project</title>
+  </head>
+  <body>
+    <div class="map-header"><p id="header">Potato Blight Extracted Historical Information</p></div>
+    <div id="map" class="map"></div>
+    <!-- Color button from Google Material, click to open attribute table -->
+    <button id="btnTable" class="mdl-button mdl-js-button mdl-button--fab mdl-button--colored" onclick="toggleNav()">
+      <i class="material-icons">table_chart</i>
+    </button>
+      <!-- <div id="legend"></div>
+        <img src="legend.png"> -->
+    <!-- command out to test the datatable -->
+    <div id="popup" class="ol-popup">
+      <div class="popup-header">
+          <label id="number-of-points" class="click-number-of-points"></label><button id= "previous-button" class= "previous-point-button">previous</button><button id= "next-button" class= "next-point-button">next</button><a href="#" id="popup-closer" class="ol-popup-closer"></a>
+      </div>
+      <div id="popup-content" class="ol-popup-content"></div>
+      <button id= "submit" class="submit-edits">Submit</button>
+      <!-- <button id= "zoom2feature"></button> -->
+    </div>
+    <div id ="tableSidenav">
+      <!-- Nav tabs -->
+      <ul class="nav nav-tabs" role="tablist">
+          <li role="presentation" class="active"><a id="tab-1" href="#tabpanel-1" aria-controls="tabpanel-1" role="tab" data-toggle="tab"></a></li>
+          <li role="presentation" ><a id="tab-2" href="#tabpanel-2" aria-controls="tabpanel-2" role="tab" data-toggle="tab"></a></li>
+          <li role="presentation" ><a id="tab-3" href="#tabpanel-3" aria-controls="tabpanel-3" role="tab" data-toggle="tab"></a></li>
+      </ul>
+
+      <!-- Tab panes -->
+      <div class="tab-content">
+        <div role="tabpanel" class="tab-pane fade in active" id="tabpanel-1">
+          <!-- attribute table creation-->
+          <table id="attributeTb" class="table table-striped table-bordered table-condensed" cellspacing="0" width="100%"></table>
+        </div>
+        <div role="tabpanel" class="tab-pane fade" id="tabpanel-2">
+          <table id="attributeTb2" class="table table-striped table-bordered table-condensed" cellspacing="0" width="100%"></table>
+        </div>
+        <div role="tabpanel" class="tab-pane fade" id="tabpanel-3">
+          <table id="attributeTb3" class="table table-striped table-bordered table-condensed" cellspacing="0" width="100%"></table>
+        </div>
+      </div>
+    </div>
+    <!-- Update to the latest version OpenLayers v5.3.0-->
+    <script src="https://openlayers.org/en/v5.3.0/build/ol.js" type="text/javascript"></script>
+    <script src="../ol-layerswitcher/dist/ol-layerswitcher.js"></script>
+    <!-- Added for CellEdit plug-in -->
+    <!-- <script src="https://code.jquery.com/jquery-1.12.2.min.js" integrity="sha256-lZFHibXzMHo3GGeehn1hudTAP3Sc0uKXBXAzHX1sjtk=" crossorigin="anonymous"></script> -->
+    <!-- <script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" integrity="sha256-VazP97ZCwtekAsvgPBSUwPFKdrwD3unUfSGVYrahUqU=" crossorigin="anonymous"></script> -->
+    <!-- <script src="../CellEdit/js/dataTables.cellEdit.js"></script> -->
+
+    <script type="text/javascript" src="datamining.js"></script>
+  </body>
+</html>
